@@ -568,6 +568,84 @@ def cmd_get_voltage(api: AvalonMinerAPI, args) -> None:
         print(json.dumps(response, indent=2))
 
 
+def cmd_get_fan(api: AvalonMinerAPI, args) -> None:
+    """Get current fan speed"""
+    response = api.send_command('estats')
+
+    if 'STATS' in response and len(response['STATS']) > 0:
+        stats = response['STATS'][0] if isinstance(response['STATS'], list) else response['STATS']
+        mm_id0 = stats.get('MM ID0', '')
+
+        if mm_id0:
+            fan_rpm = parse_estats_field(mm_id0, 'Fan1')
+            fan_percent = parse_estats_field(mm_id0, 'FanR')
+
+            print("\n=== Fan Speed ===")
+            if fan_rpm:
+                print(f"Fan Speed (RPM)  : {fan_rpm}")
+            if fan_percent:
+                print(f"Fan Speed (%)    : {fan_percent}")
+            print()
+        else:
+            print("Error: Could not retrieve fan information")
+
+    if args.json:
+        print(json.dumps(response, indent=2))
+
+
+def cmd_get_work_mode(api: AvalonMinerAPI, args) -> None:
+    """Get current work mode"""
+    response = api.send_command('estats')
+
+    if 'STATS' in response and len(response['STATS']) > 0:
+        stats = response['STATS'][0] if isinstance(response['STATS'], list) else response['STATS']
+        mm_id0 = stats.get('MM ID0', '')
+
+        if mm_id0:
+            work_mode_val = parse_estats_field(mm_id0, 'WORKMODE')
+
+            print("\n=== Work Mode ===")
+            if work_mode_val:
+                work_mode = get_work_mode_name(work_mode_val)
+                print(f"Current Mode     : {work_mode} (Mode {work_mode_val})")
+            else:
+                print("Error: Could not retrieve work mode")
+            print()
+        else:
+            print("Error: Could not retrieve work mode information")
+
+    if args.json:
+        print(json.dumps(response, indent=2))
+
+
+def cmd_get_target_temp(api: AvalonMinerAPI, args) -> None:
+    """Get current target temperature"""
+    response = api.send_command('estats')
+
+    if 'STATS' in response and len(response['STATS']) > 0:
+        stats = response['STATS'][0] if isinstance(response['STATS'], list) else response['STATS']
+        mm_id0 = stats.get('MM ID0', '')
+
+        if mm_id0:
+            target_temp = parse_estats_field(mm_id0, 'TarT')
+            temp_max = parse_estats_field(mm_id0, 'TMax')
+            temp_avg = parse_estats_field(mm_id0, 'TAvg')
+
+            print("\n=== Temperature Settings ===")
+            if target_temp:
+                print(f"Target Temp      : {target_temp}°C")
+            if temp_max:
+                print(f"Current Max      : {temp_max}°C")
+            if temp_avg:
+                print(f"Current Avg      : {temp_avg}°C")
+            print()
+        else:
+            print("Error: Could not retrieve temperature information")
+
+    if args.json:
+        print(json.dumps(response, indent=2))
+
+
 def cmd_set_voltage(api: AvalonMinerAPI, args) -> None:
     """Set miner voltage"""
     print(f"\nSetting voltage to {args.voltage}...")
@@ -796,6 +874,18 @@ Examples:
     get_volt_parser = subparsers.add_parser('get-voltage', help='Get voltage information')
     get_volt_parser.add_argument('--json', action='store_true', help='Output raw JSON response')
 
+    # Get fan speed
+    get_fan_parser = subparsers.add_parser('get-fan', help='Get current fan speed')
+    get_fan_parser.add_argument('--json', action='store_true', help='Output raw JSON response')
+
+    # Get work mode
+    get_work_mode_parser = subparsers.add_parser('get-work-mode', help='Get current work mode')
+    get_work_mode_parser.add_argument('--json', action='store_true', help='Output raw JSON response')
+
+    # Get target temperature
+    get_target_temp_parser = subparsers.add_parser('get-target-temp', help='Get current target temperature')
+    get_target_temp_parser.add_argument('--json', action='store_true', help='Output raw JSON response')
+
     set_volt_parser = subparsers.add_parser('set-voltage', help='Set voltage (DANGEROUS - use with caution!)')
     set_volt_parser.add_argument('--voltage', type=int, required=True, metavar='VALUE',
                                 help='Voltage value (device-specific units)')
@@ -863,8 +953,11 @@ Examples:
             'pools': cmd_pools,
             'info': cmd_info,
             'set-fan': cmd_set_fan_speed,
+            'get-fan': cmd_get_fan,
             'set-work-mode': cmd_set_work_mode,
+            'get-work-mode': cmd_get_work_mode,
             'set-target-temp': cmd_set_target_temp,
+            'get-target-temp': cmd_get_target_temp,
             'get-voltage': cmd_get_voltage,
             'set-voltage': cmd_set_voltage,
             'reboot': cmd_reboot,
